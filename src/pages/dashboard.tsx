@@ -29,7 +29,6 @@ const formSchema = z.object({
   Apellido: z.string().min(1, "El apellido es obligatorio"),
   password: z.string().min(6),
   role: z.enum(['ADMIN', 'USER']),
-
 });
 
 

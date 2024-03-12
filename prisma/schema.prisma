@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,15 +7,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int     @id @default(autoincrement())
-  rut       String  @unique
-  password  String
-  nombre    String? // Opcional
-  apellido  String? // Opcional
-  email     String? @unique // Opcional y único
-  role      String  @default("USER")
+enum UserRole { 
+  USER 
+  ADMIN
 }
+
+
+model User {
+  id           Int     @id @default(autoincrement())
+  rut          String  @unique
+  password     String
+  nombre       String?
+  apellido     String?
+  email        String? @unique
+  role         UserRole   @default(USER) 
+  isFirstLogin Boolean @default(true)
+
+  passwordReset  PasswordReset[] 
+  passwordResetId Int?           @unique
+}
+
+model airplane {
+  id       Int      @id @default(autoincrement())
+  registration String
+  model       String
+  capacity    Json
+  tripulation Int
+  seasonCapacity Json
+  msn       Int
+  yom       Int
+
+  @@unique([registration], name: "unique_aircraft_registration")
+
+
+
+}
+
+model PasswordReset {
+  id         Int      @id @default(autoincrement())
+  userId     Int      // La referencia al ID de usuario
+  resetToken String   // El token de restablecimiento de contraseña
+  expiry     DateTime // La fecha y hora de caducidad del token
+  user      User     @relation(fields: [userId], references: [id])
+  
+}
+
+model Route {
+  id             Int      @id @default(autoincrement())
+  city           String
+  region         String
+  flightCode     String   @unique
+  description    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Vuelo {
+  id                Int      @id @default(autoincrement())
+  fechaHoraSalida   DateTime
+  numeroVuelo       String
+  matriculaAvion    String
+  origen            String
+  destino           String
+
+}
+
 
 
 

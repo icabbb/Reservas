@@ -3,6 +3,7 @@
     "airbnb-typescript/base",
     "next/core-web-vitals",
     "plugin:prettier/recommended"
+    
   ],
   "plugins": [
     "prettier"

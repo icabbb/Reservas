@@ -32,6 +32,15 @@ const LoginPage: NextPage = () => {
         required: false, // No requerir sesión activa para acceder a esta página
     });
 
+
+    const handleRutChange = (event: { target: { value: string; }; }) => {
+        let value = event.target.value.replace(/\D/g, ''); // Remueve cualquier cosa que no sea un número
+        if (value.length > 8) {
+            value = value.slice(0, value.length - 1) + '-' + value.slice(value.length - 1);
+        }
+        setRut(value);
+    };
+
     useEffect(() => {
         // Revisa si el usuario está autenticado y si debe cambiar su contraseña
         if (status === 'authenticated' && session.user.isFirstLogin) {
@@ -111,10 +120,12 @@ const LoginPage: NextPage = () => {
                                     className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
                                     placeholder="11111111-1"
                                     value={rut}
-                                    onChange={(e) => setRut(e.target.value)}
+                                    onChange={handleRutChange}
+                                    maxLength={10}
                                 />
+                                <span className="text-gray-500 text-xs">El formato del rut es 12345678-9, el guion se asigna automatico.</span>
                             </div>
-                            <div className='pt-4'>
+                            <div className='pt-2'>
                                 <label htmlFor="password" className="sr-only">Contraseña</label>
                                 <input
                                     id="password"

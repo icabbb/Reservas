@@ -24,7 +24,7 @@ export default async function handler(
 
 
   else if (req.method === 'POST') {
-    const usuarios = req.body; // Asumimos que `usuarios` es un array de objetos usuario
+    const usuarios = Array.isArray(req.body) ? req.body : [req.body]; // Asumimos que `usuarios` es un array de objetos usuario
 
     // Procesar cada usuario individualmente
     const resultados = [];

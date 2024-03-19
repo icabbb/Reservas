@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
+import { use } from 'react';
 // Add the missing import statement
 
 const prisma = new PrismaClient();
@@ -40,10 +41,10 @@ export default async function handler(
       service: 'gmail',
       port: 465,
       secure: true,
-    
+
       auth: {
-          user: 'spprttestcollahuasi@gmail.com',
-          pass: 'abbvznuspxhssjdq',
+        user: 'spprttestcollahuasi@gmail.com',
+        pass: 'abbvznuspxhssjdq',
       },
     });
 

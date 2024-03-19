@@ -11,7 +11,7 @@ const ForgotPasswordPage: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('/api/forgotPassword', {
+      const response = await fetch('/api/user/forgotPassword', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -19,9 +19,19 @@ const ForgotPasswordPage: React.FC = () => {
         body: JSON.stringify({ rut, email }),
       });
 
+
+
       if (!response.ok) {
         throw new Error('Error al solicitar nueva contraseña');
       }
+
+      if (response.ok) {
+        // Asumiendo que quieres mostrar un mensaje y redirigir
+        alert('Solicitud de contraseña enviada con éxito. Revisa tu correo electrónico.');
+        router.push('/login');
+      }
+
+
 
       // Handle success (e.g., show a message or redirect)
       console.log('Solicitud de contraseña enviada con éxito');

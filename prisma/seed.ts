@@ -1,30 +1,25 @@
 import { PrismaClient } from '@prisma/client';
-
-
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminRut = '23995429-4'
-  const adminPassword = 'admin'; 
+  const adminRut = '23995429-4';
+  const plainAdminPassword = 'admin';
   const Role = 'ADMIN';
-  // Asegúrate de utilizar un RUT válido para tu administrador
-   // Elige una contraseña segura
 
-  
+  // Generar un hash de la contraseña
+  const hashedPassword = await bcrypt.hash(plainAdminPassword, 10);
 
+  // Upsert del usuario administrador
   const adminUser = await prisma.user.upsert({
     where: { rut: adminRut },
     update: {},
     create: {
       rut: adminRut,
-      password: adminPassword,
+      password: hashedPassword,
       role: Role,
-    
 
-    
-      
-      // Agrega cualquier otro campo necesario para tu modelo de usuario
     },
   });
 

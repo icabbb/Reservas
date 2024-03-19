@@ -1,56 +1,117 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
+import NextAuth from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials';
+
 import { PrismaClient } from "@prisma/client";
+import bcrypt from 'bcrypt'; // Asegúrate de usar bcryptjs que es la versión en JavaScript puro
+import { NextApiRequest, NextApiResponse } from 'next';
 
 const prisma = new PrismaClient();
 
-export default NextAuth({
+export const authOptions: NextAuthOptions = ({
+
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credenciales',
       credentials: {
-        rut: { label: "RUT", type: "text", placeholder: "12345678-9" },
-        password: { label: "Password", type: "password" }
+        rut: { label: "RUT", type: "text" },
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials, req): Promise<any> {
-        if (!credentials) return null;
-        const { rut, password } = credentials;
+        if (!credentials || !credentials.rut || !credentials.password) {
+          return null;
+        }
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { rut },
-          });
+        const user = await prisma.user.findUnique({
+          where: { rut: credentials.rut },
+        });
 
-          if (user) {
-            const rutWithoutDV = rut.replace(/-\d$/, ''); // 
-            const isInitialLogin = password === rutWithoutDV;
-            const isCorrectPassword = isInitialLogin || await bcrypt.compare(password, user.password);
+        if (!user) {
+          return null;
+        }
 
-            if (isCorrectPassword) {
-              
-              return { id: user.id, rut: user.rut, role: user.role };
-            }
-          }
-        } catch (error) {
-          console.error('Error during authorization:', error);
+        const isFirstLogin = user.isFirstLogin && credentials.password === credentials.rut.replace(/-\d$/, '');
+        const isPasswordValid = !isFirstLogin && await bcrypt.compare(credentials.password, user.password);
+
+
+        if (isFirstLogin || isPasswordValid) {
+
+          return {
+            id: user.id,
+            name: user.nombres,
+            lastName: user.apellidoPaterno + ' ' + user.apellidoMaterno,
+            email: user.email,
+            rut: user.rut,
+            role: user.role,
+            cargo: user.cargo,
+            isExecutive: user.isExecutive,
+            isFirstLogin,
+            asiento: user.asientoAsignado,
+
+
+
+          };
         }
         return null;
-      }
+      },
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+
+
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.role) {
+
+      if (user) {
+        token.userId = user.id;
+        token.rut = user.rut;
         token.role = user.role;
+        token.isFirstLogin = user.isFirstLogin;
+        token.name = user.name;
+        token.email = user.email;
+        token.lastName = user.lastName;
+        token.cargo = user.cargo;
+        token.isExecutive = user.isExecutive;
+        token.asiento = user.asientoAsignado;
+
+
+
+
+
+
       }
       return token;
     },
     async session({ session, token }) {
-      if (token?.role) { 
-        session.user.role = token.role as string; 
-      }
+
+      session.user.id = token.userId as string;
+      session.user.rut = token.rut as string;
+      session.user.role = token.role as string;
+      session.user.isFirstLogin = token.isFirstLogin as boolean;
+      session.user.name = token.name as string;
+      session.user.email = token.email as string;
+      session.user.lastName = token.lastName as string;
+      session.user.cargo = token.cargo as string;
+      session.user.isExecutive = token.isExecutive as boolean;
+      session.user.asiento = token.asiento as string;
+
       return session;
     },
   },
+  pages: {
+    signIn: '/login',
+
+  },
+
 });
+
+export default (req: NextApiRequest, res: NextApiResponse) => NextAuth(req, res, authOptions)
+
+
+
+
+

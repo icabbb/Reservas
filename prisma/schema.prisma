@@ -7,72 +7,86 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole { 
-  USER 
+enum UserRole {
+  USER
   ADMIN
 }
 
-
 model User {
-  id           Int     @id @default(autoincrement())
-  rut          String  @unique
-  password     String
-  nombre       String?
-  apellido     String?
-  email        String? @unique
-  role         UserRole   @default(USER) 
-  isFirstLogin Boolean @default(true)
+  id              Int     @id @default(autoincrement())
+  rut             String  @unique
+  password        String
+  nombres         String?
+  apellidoPaterno String?
+  apellidoMaterno String?
 
-  passwordReset  PasswordReset[] 
-  passwordResetId Int?           @unique
+  email           String?  @unique
+  cargo           String?
+  role            UserRole @default(USER)
+  isFirstLogin    Boolean  @default(true)
+  asientoAsignado String?
+  isExecutive     Boolean  @default(false)
+
+  passwordReset   PasswordReset[]
+  passwordResetId Int?            @unique
+  Reserva         Reserva[]
 }
 
 model airplane {
-  id       Int      @id @default(autoincrement())
-  registration String
-  model       String
-  capacity    Json
-  tripulation Int
+  id             Int    @id @default(autoincrement())
+  registration   String
+  model          String
+  capacity       Json
+  tripulation    Int
   seasonCapacity Json
-  msn       Int
-  yom       Int
+  msn            Int
+  yom            Int
 
   @@unique([registration], name: "unique_aircraft_registration")
-
-
-
 }
 
 model PasswordReset {
   id         Int      @id @default(autoincrement())
-  userId     Int      // La referencia al ID de usuario
-  resetToken String   // El token de restablecimiento de contraseña
+  userId     Int // La referencia al ID de usuario
+  resetToken String // El token de restablecimiento de contraseña
   expiry     DateTime // La fecha y hora de caducidad del token
-  user      User     @relation(fields: [userId], references: [id])
-  
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Route {
-  id             Int      @id @default(autoincrement())
-  city           String
-  region         String
-  flightCode     String   @unique
-  description    String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  city        String
+  region      String
+  flightCode  String   @unique
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Vuelos Vuelo[]
 }
 
 model Vuelo {
-  id                Int      @id @default(autoincrement())
-  fechaHoraSalida   DateTime
-  numeroVuelo       String
-  matriculaAvion    String
-  origen            String
-  destino           String
+  id              Int      @id @default(autoincrement())
+  fechaHoraSalida DateTime
+  numeroVuelo     String
+  matriculaAvion  String
+  origen          String
+  destino         String
+  RouteId         Int?
 
+  Route Route? @relation(fields: [RouteId], references: [id]) // Relación con Route
+
+  Reserva Reserva[]
 }
 
-
-
-
-
+model Reserva {
+  id               Int       @id @default(autoincrement())
+  vueloId          Int
+  userId           Int
+  fechaReserva     DateTime  @default(now())
+  estacionamiento  Boolean   @default(false)
+  estado           String    @default("Reservado") // Reservado, Cancelado
+  fechaCancelacion DateTime?
+  vuelo            Vuelo     @relation(fields: [vueloId], references: [id])
+  usuario          User      @relation(fields: [userId], references: [id])
+}

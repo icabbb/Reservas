@@ -23,68 +23,62 @@ export default async function handler(
   }
 
 
-  else if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
+  else if (req.method === 'POST') {
+    const usuarios = req.body; // Asumimos que `usuarios` es un array de objetos usuario
 
-  const { rut, Nombre, apellidoPaterno, apellidoMaterno, cargo, asientoAsignado, isExecutive, email, password, role } = req.body;
+    // Procesar cada usuario individualmente
+    const resultados = [];
+    for (const usuario of usuarios) {
+      const { rut, nombres, apellidoPaterno, apellidoMaterno, cargo, asientoAsignado, isExecutive, email, password, role } = usuario;
 
-  try {
-    // Verificar si ya existe un usuario con el mismo RUT
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        rut,
-      },
-    });
+      try {
+        // Verificar si el usuario ya existe
+        const existingUser = await prisma.user.findUnique({ where: { rut } });
+        if (existingUser) {
+          // Si el usuario ya existe, saltar a la siguiente iteración
+          continue;
+        }
 
-    if (existingUser) {
-      // Usuario ya existe, manejar según la lógica de negocio
-      return res.status(409).json({ message: 'El RUT ya está registrado.' });
+        // Si el usuario no existe, crearlo
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = await prisma.user.create({
+          data: {
+            rut,
+            nombres,
+            apellidoPaterno,
+            apellidoMaterno,
+            cargo,
+            asientoAsignado,
+            isExecutive: isExecutive === "true",
+            email,
+            password: hashedPassword,
+            role,
+          },
+        });
+
+        // Agregar el usuario creado a los resultados
+        resultados.push({
+          id: newUser.id,
+          rut: newUser.rut,
+          nombres: newUser.nombres,
+          apellidoPaterno: newUser.apellidoPaterno,
+          apellidoMaterno: newUser.apellidoMaterno,
+          cargo: newUser.cargo,
+          asientoAsignado: newUser.asientoAsignado,
+          isExecutive: newUser.isExecutive,
+          email: newUser.email,
+          role: newUser.role,
+        });
+      } catch (error) {
+        console.error('Error creating user:', error);
+        // Manejar errores como sea apropiado
+      }
     }
-  } catch (error) {
-    console.error('Error finding user:', error);
-    return res.status(500).json({ message: 'Error finding user' });
-  }
 
-
-
-  try {
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const isExecutiveBoolean = isExecutive === "true";
-
-    // Crear el usuario en la base de datos
-    const user = await prisma.user.create({
-      data: {
-        rut,
-        nombres: Nombre,
-        apellidoPaterno: apellidoPaterno,
-        apellidoMaterno: apellidoMaterno,
-        cargo,
-        asientoAsignado,
-        isExecutive: isExecutiveBoolean,
-        email,
-        password: hashedPassword,
-        role,
-      },
-    });
-
-    // Responder con el usuario creado (excluyendo la contraseña)
-    return res.status(201).json({
-      id: user.id,
-      rut: user.rut,
-      nombre: user.nombres,
-      apellidoPaterno: user.apellidoPaterno,
-      apellidoMaterno: user.apellidoMaterno,
-      cargo: user.cargo,
-      asientoAsignado: user.asientoAsignado,
-      isExecutive: user.isExecutive,
-      email: user.email,
-      role: user.role,
-    });
-  } catch (error) {
-    console.error('Error creating user:', error);
-    return res.status(500).json({ message: 'Error creating user' });
+    // Devolver los resultados
+    return res.status(201).json(resultados);
+  } else {
+    // Si no es un POST, devolver error de método no permitido
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 }

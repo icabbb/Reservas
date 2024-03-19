@@ -26,9 +26,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
     }
     else if (req.method === 'PUT') {
-        const { fechaHoraSalida, numeroVuelo, matriculaAvion, origen, destino } = req.body;
+        const { id, fechaHoraSalida, numeroVuelo, matriculaAvion, origen, destino } = req.body;
+
+        // Asegúrate de que el id esté presente
+        if (!id) {
+            return res.status(400).json({ message: 'El ID del vuelo es necesario para la actualización' });
+        }
+
         try {
-            const updateVuelo = await prisma.vuelo.create({
+            const updateVuelo = await prisma.vuelo.update({
+                where: {
+                    id: id, // Asegúrate de que este sea el nombre correcto del campo identificador
+                },
                 data: {
                     fechaHoraSalida,
                     numeroVuelo,
@@ -36,15 +45,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     origen,
                     destino,
                 },
-
             });
             return res.status(200).json(updateVuelo);
-        }
-
-        catch (error) {
+        } catch (error) {
             console.error('Error al actualizar la ruta:', error);
             return res.status(500).json({ message: 'Error interno del servidor' });
         }
+
+
     } else if (req.method === 'DELETE') {
         try {
             const vuelo = await prisma.vuelo.delete({

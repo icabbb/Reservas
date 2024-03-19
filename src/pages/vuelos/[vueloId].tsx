@@ -10,53 +10,64 @@ import { NextApiRequest } from 'next';
 import { authOptions } from '../api/auth/[...nextauth]';
 import { Switch } from '@/components/ui/switch';
 
+
 export default function VueloReservation() {
     const router = useRouter();
     const { vueloId } = router.query;
     const [vuelo, setVuelo] = useState(null);
     const { data: session } = useSession();
     const [requiereEstacionamiento, setRequiereEstacionamiento] = useState(false);
-
-
-
-
-
+    const [parkingAvailable, setParkingAvailable] = useState(true);
 
     useEffect(() => {
-        if (!vueloId) return; // Ensure we have an ID before fetching
-        fetch(`/api/vuelos/${vueloId}`)
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch vuelo details');
-                }
-                return res.json();
-            })
-            .then(data => setVuelo(data))
-            .catch(error => console.error('Error fetching vuelo details:', error));
+        if (vueloId) {
+            fetch(`/api/vuelos/${vueloId}`)
+                .then(res => res.json())
+                .then(setVuelo)
+                .catch(error => console.error('Error fetching flight details:', error));
+            checkParkingAvailability();
+        }
     }, [vueloId]);
+
+    const checkParkingAvailability = async () => {
+        try {
+            const response = await fetch(`/api/reservas/reserva`);
+            if (response.ok) {
+                const data = await response.json();
+                setParkingAvailable(data.disponibles > 0);
+            } else {
+                console.error('Error fetching parking availability:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching parking availability:', error);
+        }
+    };
+
+
 
 
 
     const handleReserve = async () => {
-        if (!vueloId || !session?.user?.id) {
-            alert('Error al realizar la reserva. Inténtalo de nuevo.');
-            return;
-        }
-        try {
-            const response = await fetch(`/api/reservas/reserva`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ vueloId, userId: session.user.id, requiereEstacionamiento }),
-            });
-
-            if (!response.ok) throw new Error('Reservation failed');
-            alert('Reserva confirmada.');
-            router.push('/mis-reservas');
-        } catch (error) {
-            console.error('Failed to reserve:', error);
-            alert('Error al realizar la reserva. Inténtalo de nuevo.');
+        if (vueloId && session?.user?.id && (!requiereEstacionamiento || (requiereEstacionamiento && parkingAvailable))) {
+            const body = JSON.stringify({ vueloId, userId: session.user.id, requiereEstacionamiento });
+            try {
+                const response = await fetch(`/api/reservas/reserva`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: body,
+                });
+                if (response.ok) {
+                    alert('Reservation confirmed.');
+                    router.push('/mis-reservas');
+                } else {
+                    alert('Error making reservation. Please try again.');
+                }
+            } catch (error) {
+                console.error('Failed to reserve:', error);
+                alert('Error making reservation. Please try again.');
+            }
+        } else {
+            alert('Please ensure all required details are filled in correctly.');
         }
     };
 
@@ -64,7 +75,10 @@ export default function VueloReservation() {
         setRequiereEstacionamiento(event.target.checked);
     };
 
+
+
     if (!vuelo) return <div>Loading...</div>;
+
 
     return (
         <>
@@ -98,15 +112,19 @@ export default function VueloReservation() {
 
                         </div>
                         <div className="mt-4">
-                            <label htmlFor="requiereEstacionamiento" className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    id="requiereEstacionamiento"
-                                    checked={requiereEstacionamiento}
-                                    onChange={handleChangeEstacionamiento}
-                                />
-                                <span className="ml-2">Requiero estacionamiento</span>
-                            </label>
+                            {parkingAvailable ? (
+                                <label htmlFor="requiereEstacionamiento" className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        id="requiereEstacionamiento"
+                                        checked={requiereEstacionamiento}
+                                        onChange={handleChangeEstacionamiento}
+                                    />
+                                    <span className="ml-2">Requiero estacionamiento</span>
+                                </label>
+                            ) : (
+                                <div>No hay estacionamientos disponibles.</div>
+                            )}
                         </div>
 
                     </CardContent>

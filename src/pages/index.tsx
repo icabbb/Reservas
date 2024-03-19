@@ -1,4 +1,3 @@
-// pages/index.tsx
 import { GetServerSideProps } from 'next';
 import { getSession, useSession } from 'next-auth/react';
 import NavbarCom from '@/components/ui/navbar';
@@ -12,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, formatISO } from 'date-fns';
+
 
 export default function HomePage({ dateString }: { dateString: string }) {
-  const [fecha, setFecha] = useState('');
+  const [fecha, setFecha] = useState<Date | null>(null);
   const [origen, setOrigen] = useState('');
   const [destino, setDestino] = useState('');
-  const [vuelosDisponibles, setVuelosDisponibles] = useState([]);
+  const [vuelosDisponibles, setVuelosDisponibles] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
 
@@ -27,25 +27,24 @@ export default function HomePage({ dateString }: { dateString: string }) {
   };
 
 
-  const handleDestinoChange = (value: SetStateAction<string>) => {
+  const handleDestinoChange = async (value: string) => {
     setDestino(value);
-  };
-  const buscarVuelos = async (e: { preventDefault: () => void; }) => {
-    e.preventDefault();
-    if (!origen || !destino || !fecha) {
-      console.error("Debes seleccionar el origen, el destino y la fecha para buscar vuelos.");
-      return;
-    }
 
+
+    if (origen && fecha && value) {
+      await buscarVuelosDirectamente(origen, value, fecha);
+
+    }
+  };
+  const buscarVuelosDirectamente = async (origen: string, destino: string, fecha: Date) => {
     // Formatea la fecha en el formato 'YYYY-MM-DD'
-    const fechaObj = new Date(fecha);
-    const formattedDate = fechaObj.toISOString().split('T')[0];
+    const formattedDate = formatISO(fecha, { representation: 'date' });
 
     try {
       const query = new URLSearchParams({
         origen,
         destino,
-        fecha: formattedDate, // Usa la fecha formateada
+        fecha: formattedDate,
       }).toString();
       const response = await fetch(`/api/vuelos/reservar?${query}`);
 
@@ -59,7 +58,6 @@ export default function HomePage({ dateString }: { dateString: string }) {
       console.error("Error al buscar vuelos:", error);
     }
   };
-
 
   // Manejador para actualizar el estado de la fecha cuando el usuario selecciona una fecha en el calendario
   const handleDateChange = (date: any) => {
@@ -88,9 +86,18 @@ export default function HomePage({ dateString }: { dateString: string }) {
         <div className="grid gap-4">
           <h1 className="text-3xl font-semibold tracking-tight text-center">Reserva tu vuelo</h1>
           <div className="grid gap-4">
+            {/* Muestra primero el Input para la fecha */}
+            <Input
+              type="Date"
+              value={fecha ? format(fecha, 'yyyy-MM-dd') : ''} // Este es el estado que se actualiza con la fecha seleccionada
+              readOnly // Esto hace que el input sea solo de lectura
+              className="bg-gray-200 cursor-not-allowed" // Agrega estilos para indicar que el input no es editable
+              placeholder="DD/MM/AAAA" // Puedes cambiar el formato del placeholder si es necesario
+            />
+            {/* Luego el Popover para el calendario */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button className="w-auto justify-start text-left font-normal" id="calendar" variant="outline" >
+                <Button className="w-auto justify-start text-left font-normal" id="calendar" variant="outline">
                   <CalendarDaysIcon className="mr-1 h-4 w-4 -translate-x-1" />
                   Selecciona una fecha
                 </Button>
@@ -99,6 +106,7 @@ export default function HomePage({ dateString }: { dateString: string }) {
                 <Calendar initialFocus mode="single" onSelect={handleDateChange} />
               </PopoverContent>
             </Popover>
+
             <form className="grid gap-4">
               <div className="grid gap-2">
                 <div className="text-sm flex items-center gap-2">
@@ -123,7 +131,7 @@ export default function HomePage({ dateString }: { dateString: string }) {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona el destino" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent >
                     <SelectItem value="Santiago">Santiago</SelectItem>
                     <SelectItem value="Coposa">Coposa</SelectItem>
                     <SelectItem value="Iquique">Iquique</SelectItem>
@@ -131,7 +139,7 @@ export default function HomePage({ dateString }: { dateString: string }) {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" variant={'destructive'} onClick={buscarVuelos}>Buscar vuelos</Button>
+
             </form>
             {vuelosDisponibles.length > 0 ? (
               <div className="max-w-3xl mx-auto space-y-8 p-4">
@@ -264,7 +272,3 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     props: { dateString },
   };
 };
-
-
-
-

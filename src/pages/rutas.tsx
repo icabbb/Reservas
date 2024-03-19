@@ -189,180 +189,187 @@ export default function Component() {
 
     return (
         <>
-            <div>
-                <NavbarCom />
-            </div>
-            <div className="mx-auto max-w-4xl bg-white p-6">
-                <div className="mb-4 flex justify-between">
-                    <Select value={rowsPerPage.toString()} onValueChange={handleSelectRowsPerPage}>
-                        <SelectTrigger id="show" className="w-[200px]">
-                            <SelectValue>{rowsPerPage}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                            <SelectItem value="5" onSelect={() => handleSelectRowsPerPage('5')}>5</SelectItem>
-                            <SelectItem value="10" onSelect={() => handleSelectRowsPerPage('10')}>10</SelectItem>
-                            <SelectItem value="15" onSelect={() => handleSelectRowsPerPage('15')}>15</SelectItem>
 
-                        </SelectContent>
-                    </Select>
+            <NavbarCom />
+            <main className="max-w-4xl mx-auto my-10 p-8 border-t-8 border-red-500">
+                <div className="mx-auto max-w-4xl bg-white p-6">
+                    <div className="mb-4 flex justify-between">
+                        <Select value={rowsPerPage.toString()} onValueChange={handleSelectRowsPerPage}>
+                            <SelectTrigger id="show" className="w-[200px]">
+                                <SelectValue>{rowsPerPage}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                                <SelectItem value="5" onSelect={() => handleSelectRowsPerPage('5')}>5</SelectItem>
+                                <SelectItem value="10" onSelect={() => handleSelectRowsPerPage('10')}>10</SelectItem>
+                                <SelectItem value="15" onSelect={() => handleSelectRowsPerPage('15')}>15</SelectItem>
 
-                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-blue-500 text-white"><AddIcon />Crear Ruta</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleInteractOutside}>
+                            </SelectContent>
+                        </Select>
+
+                        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-blue-500 text-white"><AddIcon />Crear Ruta</Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleInteractOutside}>
+                                <DialogHeader>
+                                    <DialogTitle>Crear Ruta</DialogTitle>
+                                    <DialogDescription>Completa los detalles de la nueva ruta.</DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="grid gap-4 py-4">
+
+                                        <div className="grid grid-cols-4 items-center gap-4">
+
+                                            <Label className="text-right" htmlFor="ciudad">
+                                                Ciudad
+                                            </Label>
+                                            <Input className="col-span-3" id="ciudad" name="ciudad" placeholder="Ciudad" />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right" htmlFor="region">
+                                                Región
+                                            </Label>
+                                            <Input className="col-span-3" id="region" name="region" placeholder="Región" />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right" htmlFor="codigo">
+                                                Código de Vuelo
+                                            </Label>
+                                            <Input className="col-span-3" id="codigo" name="codigo" placeholder="Código de Vuelo" />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right" htmlFor="descripcion">
+                                                Descripción
+                                            </Label>
+                                            <Input className="col-span-3" id="descripcion" name="descripcion" placeholder="Descripción" />
+                                        </div>
+                                        <Button type="submit" onClick={() => window.location.reload()}>Guardar Ruta</Button>
+                                    </div>
+                                </form>
+                                <DialogFooter>
+                                    <Button className="bg-red-500" onClick={handleClose}>Cerrar</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                    <div className="mb-4 ">
+                        <form onSubmit={handleSearchSubmit}>
+                            <Input
+                                className="border px-2"
+                                placeholder="Buscar"
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                            />
+                        </form>
+                    </div>
+                    <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+                        <DialogContent className="sm:max-w-lg" onInteractOutside={handleInteractOutside}>
                             <DialogHeader>
-                                <DialogTitle>Crear Ruta</DialogTitle>
-                                <DialogDescription>Completa los detalles de la nueva ruta.</DialogDescription>
+                                <DialogTitle>Resultados de búsqueda</DialogTitle>
+                                <DialogDescription>Mostrando resultados para "{searchTerm}"</DialogDescription>
                             </DialogHeader>
-                            <form onSubmit={handleSubmit}>
-                                <div className="grid gap-4 py-4">
-
-                                    <div className="grid grid-cols-4 items-center gap-4">
-
-                                        <Label className="text-right" htmlFor="ciudad">
-                                            Ciudad
-                                        </Label>
-                                        <Input className="col-span-3" id="ciudad" name="ciudad" placeholder="Ciudad" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label className="text-right" htmlFor="region">
-                                            Región
-                                        </Label>
-                                        <Input className="col-span-3" id="region" name="region" placeholder="Región" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label className="text-right" htmlFor="codigo">
-                                            Código de Vuelo
-                                        </Label>
-                                        <Input className="col-span-3" id="codigo" name="codigo" placeholder="Código de Vuelo" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label className="text-right" htmlFor="descripcion">
-                                            Descripción
-                                        </Label>
-                                        <Input className="col-span-3" id="descripcion" name="descripcion" placeholder="Descripción" />
-                                    </div>
-                                    <Button type="submit">Guardar Ruta</Button>
-                                </div>
-                            </form>
+                            {renderSearchResults()}
                             <DialogFooter>
-                                <Button className="bg-red-500" onClick={handleClose}>Cerrar</Button>
+                                <Button className="bg-red-500" onClick={handleCloseSearchDialog}>Cerrar</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                </div>
-                <div className="mb-4 ">
-                    <form onSubmit={handleSearchSubmit}>
-                        <Input
-                            className="border px-2"
-                            placeholder="Buscar"
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                    </form>
-                </div>
-                <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-                    <DialogContent className="sm:max-w-lg" onInteractOutside={handleInteractOutside}>
-                        <DialogHeader>
-                            <DialogTitle>Resultados de búsqueda</DialogTitle>
-                            <DialogDescription>Mostrando resultados para "{searchTerm}"</DialogDescription>
-                        </DialogHeader>
-                        {renderSearchResults()}
-                        <DialogFooter>
-                            <Button className="bg-red-500" onClick={handleCloseSearchDialog}>Cerrar</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                <Table>
-                    <TableHeader>
-                        <TableRow >
-                            <TableHead className="font-bold text-black">Ciudad</TableHead>
-                            <TableHead className="font-bold text-black">Región</TableHead>
-                            <TableHead className="font-bold text-black">Código de Vuelo</TableHead>
-                            <TableHead className="font-bold text-black">Descripción</TableHead>
-                            <TableHead className="font-bold text-black  ">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {currentTableData.map((route: any) => (
-                            <TableRow key={route.id}>
-                                {editingId === route.id ? (
-                                    <>
-                                        <TableCell>
-                                            <Input
-                                                name="city"
-                                                value={editFormData.city}
-                                                onChange={handleEditFormChange}
-                                            />
-                                        </TableCell>
-
-                                        <TableCell>
-                                            <Input
-                                                name="region"
-                                                value={editFormData.region}
-                                                onChange={handleEditFormChange}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input
-                                                name="flightCode"
-                                                value={editFormData.flightCode}
-                                                onChange={handleEditFormChange}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input
-                                                name="description"
-                                                value={editFormData.description}
-                                                onChange={handleEditFormChange}
-                                            />
-                                        </TableCell>
-                                    </>
-                                ) : (
-                                    <>
-                                        <TableCell>{route.city}</TableCell>
-                                        <TableCell>{route.region}</TableCell>
-                                        <TableCell>{route.flightCode}</TableCell>
-                                        <TableCell>{route.description}</TableCell>
-                                    </>
-
-                                )}
-                                <TableCell>
-                                    <div className="flex justify-between gap-1">
-                                        <TrashIcon className="text-red-500" onClick={() => handleDelete(route.id)} />
-                                        {editingId === route.id ? (
-                                            <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
-                                        ) : (
-                                            <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
-                                        )}
-
-                                    </div>
-                                </TableCell>
-
-
+                    <Table>
+                        <TableHeader>
+                            <TableRow >
+                                <TableHead className="font-bold text-black">Ciudad</TableHead>
+                                <TableHead className="font-bold text-black">Región</TableHead>
+                                <TableHead className="font-bold text-black">Código de Vuelo</TableHead>
+                                <TableHead className="font-bold text-black">Descripción</TableHead>
+                                <TableHead className="font-bold text-black  ">Acciones</TableHead>
                             </TableRow>
-                        ))
+                        </TableHeader>
+                        <TableBody>
+                            {currentTableData.map((route: any) => (
+                                <TableRow key={route.id}>
+                                    {editingId === route.id ? (
+                                        <>
+                                            <TableCell>
+                                                <Input
+                                                    name="city"
+                                                    value={editFormData.city}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </TableCell>
 
-                        }
+                                            <TableCell>
+                                                <Input
+                                                    name="region"
+                                                    value={editFormData.region}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input
+                                                    name="flightCode"
+                                                    value={editFormData.flightCode}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Input
+                                                    name="description"
+                                                    value={editFormData.description}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </TableCell>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TableCell>{route.city}</TableCell>
+                                            <TableCell>{route.region}</TableCell>
+                                            <TableCell>{route.flightCode}</TableCell>
+                                            <TableCell>{route.description}</TableCell>
+                                        </>
 
-                    </TableBody>
-                </Table>
-                <div className="flex justify-between items-center">
-                    {/* Disable the Previous button if on the first page */}
-                    <Button onClick={goToPreviousPage} disabled={currentPage === 1}>Anterior</Button>
+                                    )}
+                                    <TableCell>
+                                        <div className="flex justify-between gap-1">
+                                            <TrashIcon className="text-red-500" onClick={() => handleDelete(route.id)} />
+                                            {editingId === route.id ? (
+                                                <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
+                                            ) : (
+                                                <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
+                                            )}
 
-                    {/* Display the current page number */}
-                    <span className="text-red-500 font-medium">Página {currentPage} de {totalPages}</span>
+                                        </div>
+                                    </TableCell>
 
-                    {/* Disable the Next button if on the last page */}
-                    <Button onClick={goToNextPage} disabled={currentPage === totalPages}>Siguiente</Button>
-                </div>
 
-                <footer className="mt-6 flex justify-center text-xs text-gray-600 pt-20">
-                    © 2024 - Mineral Airways - Reservas de vuelo Collahuasi
-                </footer>
-            </div >
+                                </TableRow>
+                            ))
+
+                            }
+
+                        </TableBody>
+                    </Table>
+                    <div>
+                        <p>Rutas mostradas: {currentTableData.length}</p>
+                        <p>Total de rutas: {routes.length}</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        {/* Disable the Previous button if on the first page */}
+                        <Button onClick={goToPreviousPage} disabled={currentPage === 1}>Anterior</Button>
+
+                        {/* Display the current page number */}
+                        <span className="text-red-500 font-medium">Página {currentPage} de {totalPages}</span>
+
+                        {/* Disable the Next button if on the last page */}
+                        <Button onClick={goToNextPage} disabled={currentPage === totalPages}>Siguiente</Button>
+                    </div>
+
+
+
+                    <footer className="mt-6 flex justify-center text-xs text-gray-600 pt-20">
+                        © 2024 - Mineral Airways - Reservas de vuelo Collahuasi
+                    </footer>
+                </div >
+            </main>
         </>
     )
 }

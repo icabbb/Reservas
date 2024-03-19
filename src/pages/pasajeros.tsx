@@ -7,21 +7,41 @@ import NavbarCom from "@/components/ui/navbar"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { IconPlus } from '@tabler/icons-react';
-import { toast } from "@/components/ui/use-toast"
 import { type } from "os"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator"
 import { useSession } from "next-auth/react"
+import { Toast, ToastAction } from "@/components/ui/toast"
+import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import * as XLSX from 'xlsx';
+
+
+interface Passenger {
+    id?: number;
+    rut: string;
+    nombres: string;
+    apellidoPaterno: string;
+    apellidoMaterno: string;
+    email: string;
+    cargo: string;
+    password: string;
+    asientoAsignado: string;
+    isExecutive: boolean;
+    role: string;
+}
+
 
 export default function pasajeros() {
     const { data: session, status } = useSession();
     const [isPasajeros, setIsPasajeros] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const [editingId, setEditingId] = useState(null);
-    const [editPassengerFormData, setEditPassengerFormData] = useState({
+    const [editPassengerFormData, setEditPassengerFormData] = useState<Passenger>({
+        // Initial state without id
         rut: '',
-        nombre: '',
+        nombres: '',
         apellidoPaterno: '',
         apellidoMaterno: '',
         email: '',
@@ -39,6 +59,8 @@ export default function pasajeros() {
     const [currentPage, setCurrentPage] = useState(1); // Add this line to track the current page
     const [role, setRole] = useState('');
     const [isExecutive, setIsExecutive] = useState('');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
 
 
 
@@ -50,13 +72,6 @@ export default function pasajeros() {
     const handleIsExecutiveChange = (value: string) => {
         setIsExecutive(value);
     };
-
-
-
-
-
-
-
 
     const handleSelectRowsPerPage = (valueAsString: string) => {
         setRowsPerPage(Number(valueAsString));
@@ -115,7 +130,7 @@ export default function pasajeros() {
             },
         });
         if (!res.ok) {
-            console.error('Error al eliminar la ruta:', res)
+            console.error('Error al eliminar el pasajero:', res)
 
         }
 
@@ -124,11 +139,12 @@ export default function pasajeros() {
 
     }
 
-    const handleEdit = (route: { id: any; rut: any; nombre: any; apellidoPaterno: any; apellidoMaterno: any; email: any; cargo: any; asientoAsignado: any; isExecutive: any; role: any; password: any; }) => {
-        setEditingId(route.id);
-        setEditPassengerFormData(route);
-    };
 
+
+    const handleEditClick = (isPasajeros: any) => {
+        setEditPassengerFormData({ ...isPasajeros });
+        setIsEditModalOpen(true);
+    };
 
 
     const handleEditFormChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -138,26 +154,56 @@ export default function pasajeros() {
         });
     };
 
+    const handleSaveClick = async (id: number) => {
+
+        try {
+            const res = await fetch(`/api/user/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(editPassengerFormData),
+            });
 
 
 
 
-
-    const handleSaveClick = async (id: any) => {
-        const res = await fetch(`/api/user/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(editPassengerFormData),
-            headers: {
-                'Content-Type': 'application/json'
+            if (res.ok) {
+                toast({
+                    title: 'Pasajero actualizado',
+                    description: `El pasajero ${editPassengerFormData.nombres} ${editPassengerFormData.apellidoPaterno} ha sido actualizado correctamente.`,
+                })
             }
-        });
-        if (!res.ok) {
-            console.error('Error al actualizar la ruta:', res)
-            return
+
+
+
+            setIsEditModalOpen(false);
+
+
+        } catch (error) {
+            console.error('Error al actualizar el pasajero:', error);
+            toast({
+                title: 'Error',
+                description: 'Ocurrió un error al actualizar el pasajero. Por favor, intenta de nuevo.',
+                variant: 'destructive',
+            });
+
+
         }
-        console.log('Saving', id, editPassengerFormData);
-        setEditingId(null);
     };
+
+    const handleExportExcel = () => {
+        console.log(isPasajeros)
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(isPasajeros);
+
+        XLSX.utils.book_append_sheet(wb, ws, "Pasajeros");
+        XLSX.writeFile(wb, "ListaDePasajeros.xlsx");
+    };
+
+
+
+
 
 
 
@@ -176,7 +222,7 @@ export default function pasajeros() {
 
         // Extraer la información del pasajero del formulario
         const rut = formData.get('rut') as string;
-        const nombres = formData.get('nombre') as string;
+        const nombres = formData.get('nombres') as string;
         const apellidoPaterno = formData.get('apellidoPaterno') as string;
         const apellidoMaterno = formData.get('apellidoMaterno') as string;
         const email = formData.get('email') as string;
@@ -214,8 +260,8 @@ export default function pasajeros() {
         setIsOpen(false);
     }
 
-    const filteredPasajero = isPasajeros.filter((route: { rut: string; nombre: string; apellidoPaterno: string; apellidoMaterno: string; email: string; cargo: string; asientoAsignado: string; isExecutive: boolean; role: string; }) => {
-        return `${route.rut} ${route.nombre} ${route.apellidoPaterno} ${route.apellidoMaterno} ${route.email} ${route.cargo} ${route.asientoAsignado} ${route.isExecutive} ${route.role}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredPasajero = isPasajeros.filter((route: { rut: string; nombres: string; apellidoPaterno: string; apellidoMaterno: string; email: string; cargo: string; asientoAsignado: string; isExecutive: boolean; role: string; }) => {
+        return `${route.rut} ${route.nombres} ${route.apellidoPaterno} ${route.apellidoMaterno} ${route.email} ${route.cargo} ${route.asientoAsignado} ${route.isExecutive} ${route.role}`.toLowerCase().includes(searchTerm.toLowerCase());
     }
     );
 
@@ -246,10 +292,10 @@ export default function pasajeros() {
                     </TableRow>
                 </TableHeader>
                 <TableBody className="sm:max-w-[700px]">
-                    {filteredPasajero.map((route: { id: any; rut: React.ReactNode; password: React.ReactNode; nombre: React.ReactNode; apellidoPaterno: React.ReactNode; apellidoMaterno: React.ReactNode; email: React.ReactNode; cargo: React.ReactNode; asientoAsignado: React.ReactNode; isExecutive: React.ReactNode; role: React.ReactNode; }) => (
+                    {filteredPasajero.map((route: { id: any; rut: React.ReactNode; password: React.ReactNode; nombres: React.ReactNode; apellidoPaterno: React.ReactNode; apellidoMaterno: React.ReactNode; email: React.ReactNode; cargo: React.ReactNode; asientoAsignado: React.ReactNode; isExecutive: React.ReactNode; role: React.ReactNode; }) => (
                         <TableRow key={route.id}>
                             <TableCell>{route.rut}</TableCell>
-                            <TableCell>{route.nombre ?? ''}  {route.apellidoPaterno ?? ''}  {route.apellidoMaterno ?? ''}</TableCell>
+                            <TableCell>{route.nombres ?? ''}  {route.apellidoPaterno ?? ''}  {route.apellidoMaterno ?? ''}</TableCell>
                             <TableCell>{route.email}</TableCell>
                             <TableCell>{route.asientoAsignado}</TableCell>
                             <TableCell>
@@ -258,7 +304,7 @@ export default function pasajeros() {
                                     {editingId === route.id ? (
                                         <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
                                     ) : (
-                                        <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
+                                        <PencilIcon className="text-yellow-500" onClick={() => handleEditClick(route.id)} />
                                     )}
                                 </div>
                             </TableCell>
@@ -271,17 +317,75 @@ export default function pasajeros() {
     };
 
 
+    const handleFormSubmit = async (e: { preventDefault: () => void }) => {
+        e.preventDefault(); // Previene la recarga de la página
+        await handleSaveClick(editPassengerFormData.id ?? 0);
+        // Aquí puedes mostrar tu mensaje de éxito o error basado en la respuesta
+        toast({
+            title: 'Éxito',
+            description: 'Pasajero editado correctamente.',
+            className: 'bg-green-500',
+            variant: 'default',
+        });
+    };
+
+    const importFromExcel = async (event: any) => {
+        const file = event.target.files[0];
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        try {
+            const response = await fetch('/api/user/bulk-create', { // Asume /api/users/bulk-create como tu endpoint para la creación masiva
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(jsonData),
+            });
+            if (response.ok) {
+                toast({
+                    title: 'Importación exitosa',
+                    description: 'Los pasajeros han sido importados correctamente.',
+                });
+                window.location.reload();
+
+
+
+
+            } else {
+                throw new Error('Falló la importación de pasajeros');
+            }
+        } catch (error) {
+            console.error('Error al importar pasajeros:', error);
+            toast({
+                title: 'Error',
+                description: 'Ocurrió un error al importar los pasajeros. Por favor, intenta de nuevo.',
+                variant: 'destructive',
+            });
+        }
+
+        event.target.value = ''; // Resetea el input file
+    };
+
+
+
 
 
 
 
 
     return (
+
         <>
-            <>
-                <div>
-                    <NavbarCom />
-                </div>
+
+            <div>
+                <NavbarCom />
+            </div>
+            <div>
+                <Toaster />
+            </div>
+            <main className="max-w-4xl mx-auto my-10 p-8 border-t-8 border-red-500">
                 <div className="mx-auto max-w-4xl bg-white p-6">
                     <div className="mb-4 flex justify-between">
                         <Select value={rowsPerPage.toString()} onValueChange={handleSelectRowsPerPage}>
@@ -295,6 +399,18 @@ export default function pasajeros() {
 
                             </SelectContent>
                         </Select>
+
+                        <div className="flex gap-4">
+                            <Button onClick={handleExportExcel} className="bg-green-500 text-white">Exportar a Excel</Button>
+                        </div>
+
+                        <div className="flex gap-4">
+
+                            <input className="flex h-10 w-full hover:bg-slate-200  rounded-md border border-input bg-background px-4 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-foreground file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer" type="file" accept=".xlsx, .xls" onChange={importFromExcel} placeholder="Selecciona un archivo" />
+
+                        </div>
+
+
 
                         <Dialog open={isOpen} onOpenChange={setIsOpen}>
                             <DialogTrigger asChild>
@@ -314,8 +430,8 @@ export default function pasajeros() {
                                             <Input id="rut" name="rut" placeholder="RUT del pasajero" className="mt-1" />
                                         </div>
                                         <div className="w-full px-4 sm:w-1/2">
-                                            <Label className="block pb-2" htmlFor="nombre">Nombre</Label>
-                                            <Input id="nombre" name="nombre" placeholder="Nombre del pasajero" className="mt-1" />
+                                            <Label className="block pb-2" htmlFor="nombres">nombres</Label>
+                                            <Input id="nombres" name="nombres" placeholder="nombres del pasajero" className="mt-1" />
                                         </div>
 
 
@@ -388,11 +504,12 @@ export default function pasajeros() {
                                     </div>
 
                                     <div className="mt-6">
-                                        <Button type="submit" className="bg-green-500 text-white">
+                                        <Button type="submit" className="bg-green-500 text-white" onClick={() => window.location.reload()}>
                                             Guardar Pasajero
                                         </Button>
                                     </div>
                                 </form>
+
                                 <DialogFooter>
                                     <Button className="bg-red-500" onClick={handleClose}>Cerrar</Button>
                                 </DialogFooter>
@@ -427,10 +544,10 @@ export default function pasajeros() {
                     <Table>
                         <TableHeader>
                             <TableRow >
-                                <TableHead>RUT</TableHead>
-                                <TableHead>Nombres</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Asiento Asignado</TableHead>
+                                <TableHead className="text-black font-bold">RUT</TableHead>
+                                <TableHead className="text-black font-bold">Nombres</TableHead>
+                                <TableHead className="text-black font-bold">Email</TableHead>
+                                <TableHead className="text-black font-bold">Asiento Asignado</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -450,8 +567,8 @@ export default function pasajeros() {
 
                                             <TableCell>
                                                 <Input
-                                                    name="Nombres"
-                                                    value={editPassengerFormData.nombre + ' ' + editPassengerFormData.apellidoPaterno + ' ' + editPassengerFormData.apellidoMaterno}
+                                                    name="nombres"
+                                                    placeholder={editPassengerFormData.nombres}
                                                     onChange={handleEditFormChange}
                                                 />
                                             </TableCell>
@@ -474,7 +591,7 @@ export default function pasajeros() {
                                     ) : (
                                         <>
                                             <TableCell>{route.rut}</TableCell>
-                                            <TableCell>{route.nombre ?? ''}{route.apellidoPaterno ?? ''}{route.apellidoMaterno ?? ''}</TableCell>
+                                            <TableCell>{route.nombres ?? ''}  {route.apellidoPaterno ?? ''}  {route.apellidoMaterno ?? ''}</TableCell>
                                             <TableCell>{route.email}</TableCell>
                                             <TableCell>{route.asientoAsignado}</TableCell>
 
@@ -487,20 +604,149 @@ export default function pasajeros() {
                                             {editingId === route.id ? (
                                                 <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
                                             ) : (
-                                                <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
+                                                <PencilIcon className="text-yellow-500" onClick={() => handleEditClick(route)} />
                                             )}
-
                                         </div>
                                     </TableCell>
-
-
                                 </TableRow>
                             ))
-
                             }
-
                         </TableBody>
                     </Table>
+
+
+                    {/* Modal para editar el pasajero */}
+                    {isEditModalOpen && (
+                        <div className="fixed inset-0 z-10 overflow-y-auto">
+                            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen} >
+                                <div className="flex items-center justify-center min-h-screen">
+                                    <DialogContent className=" mx-auto w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-lg font-semibold text-gray-900">Editar Pasajero</DialogTitle>
+                                        </DialogHeader>
+
+                                        <form onSubmit={handleFormSubmit} className="mt-4 space-y-4">
+                                            {/* Example of input, repeat this structure for each one */}
+                                            <Label className="block" htmlFor="rut">RUT</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="rut"
+                                                value={editPassengerFormData.rut}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="nombres">Nombres</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="nombres"
+                                                value={editPassengerFormData.nombres}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="apellidoPaterno">Apellido Paterno</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="apellidoPaterno"
+                                                value={editPassengerFormData.apellidoPaterno}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="apellidoMaterno">Apellido Materno</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="apellidoMaterno"
+                                                value={editPassengerFormData.apellidoMaterno}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="cargo">Cargo</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="cargo"
+                                                value={editPassengerFormData.cargo}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="asientoAsignado">Asiento Asignado</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="asientoAsignado"
+                                                value={editPassengerFormData.asientoAsignado}
+                                                onChange={handleEditFormChange}
+                                            />
+
+                                            <Label className="block" htmlFor="email">Email</Label>
+                                            <Input
+                                                className="w-full rounded-md border-gray-300 shadow-sm"
+                                                type="text"
+                                                name="email"
+                                                value={editPassengerFormData.email}
+                                                onChange={handleEditFormChange}
+                                            />
+
+
+
+
+
+
+                                            <div className="flex gap-4">
+                                                <div className="w-1/2">
+                                                    <Label className="block" htmlFor="role">Rol</Label>
+                                                    <Select name="role" value={role} onValueChange={handleRoleChange} >
+                                                        <SelectTrigger>
+                                                            <SelectValue>{role || "Selecciona un rol"}</SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="USER">USER</SelectItem>
+                                                            <SelectItem value="ADMIN">ADMIN</SelectItem>
+                                                        </SelectContent>
+
+                                                    </Select>
+                                                </div>
+                                                <div className="w-1/2">
+                                                    <Label className="block" htmlFor="isExecutive">Ejecutivo</Label>
+                                                    <Select name="isExecutive" value={isExecutive} onValueChange={handleIsExecutiveChange} >
+                                                        <SelectTrigger>
+                                                            <SelectValue>{isExecutive || "Selecciona una opción"}</SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="true">Sí</SelectItem>
+                                                            <SelectItem value="false">No</SelectItem>
+                                                        </SelectContent>
+
+
+
+
+
+                                                    </Select>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end mt-6">
+                                                <Button onClick={() => setIsEditModalOpen(false)} className="mr-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                    Cancelar
+                                                </Button>
+                                                <Button type="submit" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                    <CheckIcon className="m-2" />Guardar
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </DialogContent>
+                                </div>
+                            </Dialog>
+                        </div>
+
+                    )}
+
+                    <div>
+                        <p>Pasajeros mostrados: {currentTableData.length}</p>
+                    </div>
                     <div className="flex justify-between items-center pt-4">
                         {/* Disable the Previous button if on the first page */}
                         <Button onClick={goToPreviousPage} disabled={currentPage === 1}>Anterior</Button>
@@ -512,12 +758,15 @@ export default function pasajeros() {
                         <Button onClick={goToNextPage} disabled={currentPage === totalPages}>Siguiente</Button>
                     </div>
 
+
                     <footer className="mt-6 flex justify-center text-xs text-gray-600 pt-20">
                         © 2024 - Mineral Airways - Reservas de vuelo Collahuasi
                     </footer>
                 </div >
-            </>
+            </main >
+
         </>
+
     )
 }
 

@@ -12,15 +12,7 @@ export default function ChangePassword() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    useEffect(() => {
-        if (status === "authenticated" && !session?.user.isFirstLogin) {
-            if (session?.user.role === "ADMIN") {
-                router.push("/dashboard");
-            } else {
-                router.push("/");
-            }
-        }
-    }, [session, status, router]);
+
 
     async function handleSubmit(e: { preventDefault: () => void; }) {
         e.preventDefault();
@@ -49,7 +41,7 @@ export default function ChangePassword() {
             await signIn('credentials', { rut: session?.user.rut, password: password });
 
             if (session?.user.role === "ADMIN") {
-                router.push("/dashboard");
+                router.push("/");
             } else {
                 router.push("/");
             }
@@ -62,7 +54,7 @@ export default function ChangePassword() {
 
     function handleBackToLogin() {
         if (session?.user.role === "ADMIN") {
-            router.push("/dashboard");
+            router.push("/");
         } else {
             router.push("/");
         }

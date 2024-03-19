@@ -80,13 +80,25 @@ model Vuelo {
 }
 
 model Reserva {
-  id               Int       @id @default(autoincrement())
-  vueloId          Int
-  userId           Int
-  fechaReserva     DateTime  @default(now())
-  estacionamiento  Boolean   @default(false)
-  estado           String    @default("Reservado") // Reservado, Cancelado
-  fechaCancelacion DateTime?
-  vuelo            Vuelo     @relation(fields: [vueloId], references: [id])
-  usuario          User      @relation(fields: [userId], references: [id])
+  id                 Int               @id @default(autoincrement())
+  vueloId            Int
+  userId             Int
+  fechaReserva       DateTime          @default(now())
+  estacionamiento    Boolean           @default(false)
+  estado             String            @default("Reservado") // Reservado, Cancelado
+  fechaCancelacion   DateTime?
+  vuelo              Vuelo             @relation(fields: [vueloId], references: [id])
+  usuario            User              @relation(fields: [userId], references: [id])
+  Estacionamientos   Estacionamientos? @relation(fields: [estacionamientosId], references: [id])
+  estacionamientosId Int?
+}
+
+model Estacionamientos {
+  id                  Int @id @default(autoincrement())
+  total               Int @default(45)
+  ocupados            Int @default(0)
+  reservadoRoles      Int @default(2)
+  reservadoEmergencia Int @default(2)
+
+  Reserva Reserva[]
 }

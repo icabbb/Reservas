@@ -17,7 +17,7 @@ export default function NavbarCom() {
   };
 
   return (
-    <nav className="bg-white p-4 border-b-2">
+    <nav className="bg-white p-4 border-b-4 border-red-500">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <div className="shrink-0">
           <Image src={"/logo.webp"} alt="Logo" width={150} height={125} />
@@ -48,7 +48,7 @@ export default function NavbarCom() {
             Reservas
           </Link>
           {session && session.user.role === "USER" && (
-            <Link href="#" className="text-red-500 hover:text-red-300 px-3 py-2 font-medium">
+            <Link href="/mis-reservas" className="text-red-500 hover:text-red-300 px-3 py-2 font-medium">
               Mis Reservas
             </Link>
           )}
@@ -62,18 +62,20 @@ export default function NavbarCom() {
               <Link href="/pasajeros" className="text-red-500 hover:text-red-300 px-3 py-2 font-medium">
                 Pasajeros
               </Link>
-              <Link href="#" className="text-red-500 hover:text-red-300 px-3 py-2 font-medium">
+              <Link href="/reservasTotales" className="text-red-500 hover:text-red-300 px-3 py-2 font-medium">
                 Reservas Vuelos
               </Link>
             </>
           )
           }
           {session && (
-            <Link className="text-red-500 px-3 py-2 font-medium" href={""}>Hola {session.user.name}</Link>
+            <Link className="text-red-500 px-3 py-2 font-medium" href="/userProfile">
+              Hola {session.user.name} {session.user.lastName}
+            </Link>
           )}
           <Button
             onClick={handleSignOut}
-            className="text-red-600 bg-white hover:bg-red-200 px-3 py-2"
+            className="text-white bg-red-500 hover:bg-red-900 px-3 py-2 font-medium"
           >
             Cerrar sesión
           </Button>

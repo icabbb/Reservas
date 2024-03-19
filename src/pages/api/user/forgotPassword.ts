@@ -36,12 +36,15 @@ export default async function handler(
 
 
     let transporter = nodemailer.createTransport({
-      host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
+      host: "smtp.gmail.com",
+      service: 'gmail',
+      port: 465,
+      secure: true,
+    
       auth: {
-        user: "6881ee4ce8fa67",
-        pass: "9016ed182eda3c"
-      }
+          user: 'spprttestcollahuasi@gmail.com',
+          pass: 'abbvznuspxhssjdq',
+      },
     });
 
     const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-pass?token=${resetToken}`; // Construye la URL de restablecimiento de contraseña

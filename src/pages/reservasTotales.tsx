@@ -1,31 +1,29 @@
-// pages/mis-reservas.js
-import { useSession, getSession, GetSessionParams } from 'next-auth/react';
+// pages/admin/reservations.js
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { Table, TableBody, TableCell, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
+import { useSession, getSession, GetSessionParams } from 'next-auth/react';
 import NavbarCom from '@/components/ui/navbar';
-import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
-export default function MisReservas() {
+export default function AdminReservations() {
+    const [reservations, setReservations] = useState([]);
     const { data: session } = useSession();
-    const router = useRouter();
-    const [reservas, setReservas] = useState([]);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [totalPages, setTotalPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
 
 
     useEffect(() => {
-        setTotalPages(Math.ceil(reservas.length / rowsPerPage));
-    }, [reservas, rowsPerPage]);
+        setTotalPages(Math.ceil(reservations.length / rowsPerPage));
+    }, [reservations, rowsPerPage]);
 
     const goToNextPage = () => setCurrentPage((page) => Math.min(page + 1, totalPages));
     const goToPreviousPage = () => setCurrentPage((page) => Math.max(page - 1, 1));
 
     // Slicing the routes data for the current page
-    const currentTableData = reservas.slice(
+    const currentTableData = reservations.slice(
         (currentPage - 1) * rowsPerPage,
         currentPage * rowsPerPage
 
@@ -39,54 +37,24 @@ export default function MisReservas() {
         setCurrentPage(newPage);
     };
 
-
-
-
     useEffect(() => {
-        // Redirige al usuario si no está autenticado
-        if (!session) {
-            router.push('/login');
-            return;
-        }
-
-        // Función para obtener las reservas del usuario
-        const fetchReservas = async () => {
+        const fetchReservations = async () => {
             const response = await fetch('/api/reservas/mis-reservas');
             if (response.ok) {
                 const data = await response.json();
-                setReservas(data);
-            } else {
-                // Manejo de errores, por ejemplo, mostrar un mensaje
-                console.error('No se pudieron obtener las reservas');
+                setReservations(data);
             }
         };
 
-        fetchReservas();
-    }, [session, router]);
-
-    async function cancelarReserva(reservaId: any) {
-        try {
-            const response = await fetch('/api/reservas/cancelar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ reservaId }),
-            });
-
-            if (!response.ok) {
-                throw new Error('La solicitud para cancelar la reserva falló');
-            }
-
-            alert('Reserva cancelada exitosamente. Revisa tu correo electrónico para más detalles.');
-            // Aquí, actualiza el estado de la UI para reflejar que la reserva ha sido cancelada
-        } catch (error) {
-            console.error('Error al cancelar la reserva:', error);
-            alert('Error al cancelar la reserva. Por favor, intenta de nuevo.');
+        if (session && session.user.role === 'ADMIN') {
+            fetchReservations();
         }
+    }, [session]);
+
+    if (!session || session.user.role !== 'ADMIN') {
+        return <p>Cargando...</p>;
     }
 
-    // Renderiza la tabla de reservas
     return (
         <><NavbarCom />
             <main className="max-w-4xl mx-auto my-10 p-8 border-t-8 border-red-500">
@@ -103,43 +71,38 @@ export default function MisReservas() {
 
                             </SelectContent>
                         </Select>
-
-
-
                     </div>
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableCell>RUT</TableCell>
+                                <TableCell>Nombres</TableCell>
                                 <TableCell>Origen</TableCell>
                                 <TableCell>Destino</TableCell>
                                 <TableCell>Fecha</TableCell>
                                 <TableCell>Estacionamiento</TableCell>
                                 <TableCell>Estado</TableCell>
-                                <TableCell>Acciones</TableCell>
-
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {currentTableData.map((reserva: any) => (
                                 <TableRow key={reserva.id}>
+                                    <TableCell>{reserva.usuario.rut}</TableCell>
+                                    <TableCell>{reserva.usuario.nombres} {reserva.usuario.apellidoPaterno} {reserva.usuario.apellidoMaterno}</TableCell>
+
                                     <TableCell>{reserva.vuelo.origen}</TableCell>
                                     <TableCell>{reserva.vuelo.destino}</TableCell>
                                     <TableCell>{new Date(reserva.vuelo.fechaHoraSalida).toLocaleDateString()}</TableCell>
-                                    <TableCell>{reserva.estacionamiento ? 'Si' : 'No'}</TableCell>
-
+                                    <TableCell>{reserva.estacionamiento ? 'Sí' : 'No'}</TableCell>
                                     <TableCell>
                                         {reserva.estado === 'Cancelado' ? `Cancelada el ${format(new Date(reserva.fechaCancelacion), 'dd/MM/yyyy HH:mm')}` : `Reservado el ${format(new Date(reserva.fechaReserva), 'dd/MM/yyyy HH:mm')} `}
-                                    </TableCell>
-
-                                    <TableCell>
-                                        <Button onClick={() => cancelarReserva(reserva.id)} variant={'destructive'} disabled={reserva.estado === 'Cancelado'} >Cancelar</Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                         <TableFooter>
                             <TableRow>
-                                <TableCell colSpan={6} align='center' className='text-red-500' >
+                                <TableCell colSpan={7} align='center' className='text-red-500' >
                                     Página {currentPage} de {totalPages}
                                 </TableCell>
                             </TableRow>
@@ -156,14 +119,14 @@ export default function MisReservas() {
     );
 }
 
-// Redirecciona al usuario si no está autenticado
+// Esta función asegura que solo los administradores accedan a esta página
 export async function getServerSideProps(context: GetSessionParams | undefined) {
     const session = await getSession(context);
 
-    if (!session) {
+    if (!session || session.user.role !== 'ADMIN') {
         return {
             redirect: {
-                destination: '/login',
+                destination: '/',
                 permanent: false,
             },
         };

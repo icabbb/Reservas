@@ -10,9 +10,19 @@ import { IconPlus } from '@tabler/icons-react';
 import { toast } from "@/components/ui/use-toast"
 import { type } from "os"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { Separator } from "@/components/ui/separator"
 import { useSession } from "next-auth/react"
+
+interface Vuelos {
+    id?: string;
+    fechaHoraSalida: string;
+    numeroVuelo: string;
+    matriculaAvion: string;
+    origen: string;
+    destino: string;
+}
+
 
 
 export default function Component() {
@@ -20,7 +30,7 @@ export default function Component() {
     const [vuelos, setVuelos] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const [editingId, setEditingId] = useState(null);
-    const [editFormData, setEditFormData] = useState({
+    const [editFormData, setEditFormData] = useState<Vuelos>({
         fechaHoraSalida: '',
         numeroVuelo: '',
         matriculaAvion: '',
@@ -32,6 +42,7 @@ export default function Component() {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [totalPages, setTotalPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1); // Add this line to track the current page
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
 
 
@@ -108,36 +119,55 @@ export default function Component() {
 
     }
 
-    const handleEdit = (route: { id: SetStateAction<null>; fechaHoraSalida: string; numeroVuelo: string; matriculaAvion: string; origen: string; destino: string }) => {
-        setEditingId(route.id);
-        setEditFormData(route);
-    };
+    const handleEditClick = (vuelos: any) => {
+        setIsEditModalOpen(true);
+        setEditFormData(vuelos);
+    }
 
     const handleEditFormChange = (event: ChangeEvent<HTMLInputElement>) => {
-        event.preventDefault();
-        const fieldName = event.target.getAttribute('name') as string;
         setEditFormData({
             ...editFormData,
-            [fieldName]: event.target.value,
+            [event.target.name]: event.target.value,
         });
-    };
 
+    };
 
 
     const handleSaveClick = async (id: any) => {
-        const res = await fetch(`/api/vuelos/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(editFormData),
-            headers: {
-                'Content-Type': 'application/json'
+        try {
+            const res = await fetch(`/api/vuelos/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(editFormData),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (res.ok) {
+                toast({
+                    title: 'Vuelo actualizado',
+                    description: `El vuelo con el origen ${editFormData.origen} y destino ${editFormData.destino} ha sido actualizado correctamente.`,
+                })
             }
-        });
-        if (!res.ok) {
-            console.error('Error al actualizar la ruta:', res)
-            return
+            setIsEditModalOpen(false);
+            window.location.reload();
+
+
+
+
+
+        } catch (error) {
+            console.error('Error al actualizar el pasajero:', error);
+            toast({
+                title: 'Error',
+                description: 'Ocurrió un error al actualizar el pasajero. Por favor, intenta de nuevo.',
+                variant: 'destructive',
+            });
+
+
         }
-        console.log('Saving', id, editFormData);
-        setEditingId(null);
+
+
     };
 
 
@@ -200,6 +230,18 @@ export default function Component() {
     }
     ) : [];
 
+    const handleFormSubmit = async (e: { preventDefault: () => void }) => {
+        e.preventDefault(); // Previene la recarga de la página
+        await handleSaveClick(editFormData.id ?? 0);
+        // Aquí puedes mostrar tu mensaje de éxito o error basado en la respuesta
+        toast({
+            title: 'Éxito',
+            description: 'Pasajero editado correctamente.',
+            className: 'bg-green-500',
+            variant: 'default',
+        });
+    };
+
 
 
 
@@ -241,7 +283,7 @@ export default function Component() {
                                     {editingId === route.id ? (
                                         <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
                                     ) : (
-                                        <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
+                                        <PencilIcon className="text-yellow-500" onClick={() => handleEditClick(route)} />
                                     )}
                                 </div>
                             </TableCell>
@@ -276,7 +318,7 @@ export default function Component() {
                 <div>
                     <NavbarCom />
                 </div>
-                <div className="mx-auto max-w-4xl bg-white p-6">
+                <main className="max-w-4xl mx-auto my-10 p-8 border-t-8 border-red-500">
                     <div className="mb-4 flex justify-between">
                         <Select value={rowsPerPage.toString()} onValueChange={handleSelectRowsPerPage}>
                             <SelectTrigger id="show" className="w-[200px]">
@@ -292,12 +334,12 @@ export default function Component() {
 
                         <Dialog open={isOpen} onOpenChange={setIsOpen}>
                             <DialogTrigger asChild>
-                                <Button className="bg-blue-500 text-white"><AddIcon />Crear Vuelo</Button>
+                                <Button className="bg-blue-500 text-white"><AddIcon />Agregar Vuelo</Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[700px]" onInteractOutside={handleInteractOutside} >
                                 <DialogHeader>
-                                    <DialogTitle>Crear Ruta</DialogTitle>
-                                    <DialogDescription>Completa los detalles de la nueva ruta.</DialogDescription>
+                                    <DialogTitle>Agregar Vuelo</DialogTitle>
+                                    <DialogDescription>Completa los detalles del nuevo vuelo.</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleSubmit}>
                                     <div className="grid gap-4 py-4">
@@ -350,7 +392,7 @@ export default function Component() {
                                             </Label>
                                             <Input className="col-span-3" id="destino" name="destino" placeholder="Destino" />
                                         </div>
-                                        <Button type="submit">Guardar Ruta</Button>
+                                        <Button type="submit" onClick={() => window.location.reload()} >Guardar nuevo Vuelo</Button>
                                     </div>
                                 </form>
                                 <DialogFooter>
@@ -453,7 +495,7 @@ export default function Component() {
                                             {editingId === route.id ? (
                                                 <CheckIcon className="text-green-500" onClick={() => handleSaveClick(route.id)} />
                                             ) : (
-                                                <PencilIcon className="text-yellow-500" onClick={() => handleEdit(route)} />
+                                                <PencilIcon className="text-yellow-500" onClick={() => handleEditClick(route)} />
                                             )}
 
                                         </div>
@@ -467,6 +509,97 @@ export default function Component() {
 
                         </TableBody>
                     </Table>
+                    {isEditModalOpen && (
+                        <div className="fixed inset-0 z-10 overflow-y-auto">
+                            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen} >
+                                <div className="flex items-center justify-center min-h-screen">
+                                    <DialogContent className=" mx-auto w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-lg font-semibold text-gray-900 text-center">Editar Vuelos</DialogTitle>
+                                        </DialogHeader>
+                                        <Separator className="bg-black" />
+                                        <form onSubmit={handleFormSubmit} className="mt-4 space-y-4">
+                                            {/* Example of input, repeat this structure for each one */}
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right" htmlFor="fechaHoraSalida">
+                                                    Fecha y Hora de Salida
+                                                </Label>
+                                                <Input
+                                                    className="col-span-3"
+                                                    id="fechaHoraSalida"
+                                                    name="fechaHoraSalida"
+                                                    value={formatDate(editFormData.fechaHoraSalida)}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right" htmlFor="numeroVuelo">
+                                                    Numero de Vuelo
+                                                </Label>
+                                                <Input
+                                                    className="col-span-3"
+                                                    id="numeroVuelo"
+                                                    name="numeroVuelo"
+                                                    value={editFormData.numeroVuelo}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right" htmlFor="matriculaAvion">
+                                                    Matricula del Avión
+                                                </Label>
+                                                <Input
+                                                    className="col-span-3"
+                                                    id="matriculaAvion"
+                                                    name="matriculaAvion"
+                                                    value={editFormData.matriculaAvion}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right" htmlFor="origen">
+                                                    Origen
+                                                </Label>
+                                                <Input
+                                                    className="col-span-3"
+                                                    id="origen"
+                                                    name="origen"
+                                                    value={editFormData.origen}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label className="text-right" htmlFor="destino">
+                                                    Destino
+                                                </Label>
+                                                <Input
+                                                    className="col-span-3"
+                                                    id="destino"
+                                                    name="destino"
+                                                    value={editFormData.destino}
+                                                    onChange={handleEditFormChange}
+                                                />
+                                            </div>
+                                            <Separator className="bg-black" />
+                                            <div className="flex justify-between mt-6">
+                                                <Button onClick={() => setIsEditModalOpen(false)} className="mr-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                    Cancelar
+                                                </Button>
+                                                <Button type="submit" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                    <CheckIcon className="m-2" />Guardar
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </DialogContent>
+                                </div>
+                            </Dialog>
+                        </div>
+
+                    )}
+                    <div>
+                        <p>Vuelos mostrados: {currentTableData.length}</p>
+                        <p>Total de vuelos: {vuelos.length}</p>
+                    </div>
                     <div className="flex justify-between items-center pt-4">
 
                         <Button onClick={goToPreviousPage} disabled={currentPage === 1}>Anterior</Button>
@@ -477,11 +610,14 @@ export default function Component() {
 
                         <Button onClick={goToNextPage} disabled={currentPage === totalPages}>Siguiente</Button>
                     </div>
+                </main>
+                <div>
 
                     <footer className="mt-6 flex justify-center text-xs text-gray-600 pt-20">
                         © 2024 - Mineral Airways - Reservas de vuelo Collahuasi
                     </footer>
-                </div >
+                </div>
+
             </>
         </>
     )

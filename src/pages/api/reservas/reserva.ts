@@ -1,41 +1,82 @@
 import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-        const session = await getServerSession(req, res, authOptions);
-        if (!session || !session.user.id) {
-            return res.status(401).json({ message: 'Debe iniciar sesión para reservar vuelos' });
-        }
-
-        const userId = Number(session.user.id);
-        const vueloId = Number(req.body.vueloId);
-        const estacionamiento = req.body.estacionamiento === true; // Asume un valor booleano enviado en la solicitud
-
-        if (isNaN(userId) || isNaN(vueloId)) {
-            return res.status(400).json({ message: "Datos de la solicitud inválidos." });
-        }
-
+    if (req.method === 'GET') {
         try {
-            const reserva = await prisma.reserva.create({
+            const estacionamientosDisponibles = await calcularEstacionamientosDisponibles(prisma);
+            return res.status(200).json({ disponibles: estacionamientosDisponibles });
+        } catch (error) {
+            console.error('Error al obtener estacionamientos disponibles:', error);
+            return res.status(500).json({ message: 'Error al obtener estacionamientos disponibles' });
+        }
+    } else
+        if (req.method !== 'POST') {
+            return res.status(405).json({ message: 'Method Not Allowed' });
+        }
+
+    const session = await getServerSession(req, res, authOptions);
+    if (!session || !session.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { userId, vueloId, requiereEstacionamiento } = req.body;
+
+
+    try {
+        const reserva = await prisma.$transaction(async (prisma) => {
+            const prismaClient = new PrismaClient(); // Create a new instance of PrismaClient
+            const estacionamientosDisponibles = await calcularEstacionamientosDisponibles(prismaClient); // Pass the new instance to the function
+            if (requiereEstacionamiento && estacionamientosDisponibles <= 0) {
+                throw new Error('No hay estacionamientos disponibles');
+            }
+
+            if (requiereEstacionamiento) {
+                await decrementarEstacionamiento(prismaClient); // Pass the new instance to the function
+            }
+
+            return prisma.reserva.create({
                 data: {
-                    userId,
-                    vueloId,
-                    estacionamiento, // Agrega esto a la data de la reserva
+                    userId: parseInt(userId),
+                    vueloId: parseInt(vueloId),
+                    estacionamiento: requiereEstacionamiento,
                 },
             });
+        });
 
-            res.status(200).json(reserva);
-        } catch (error) {
-            console.error('Error al crear reserva:', error);
-            res.status(500).json({ message: 'Error al crear la reserva' });
-        }
-    } else {
-        res.setHeader('Allow', ['POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        return res.status(201).json(reserva);
+    } catch (error) {
+        console.error('Error al crear reserva:', error);
+        return res.status(500).json({ message: 'Error al crear la reserva' });
     }
 }
+async function calcularEstacionamientosDisponibles(prisma: PrismaClient): Promise<number> {
+    const estacionamientoInfo = await prisma.estacionamientos.findUnique({
+        where: {
+            id: 1, // Asumiendo que hay un solo registro que controla los estacionamientos.
+        },
+    });
+
+    if (!estacionamientoInfo) throw new Error('Información de estacionamientos no encontrada');
+
+    const disponibles = estacionamientoInfo.total - estacionamientoInfo.ocupados - estacionamientoInfo.reservadoRoles - estacionamientoInfo.reservadoEmergencia;
+    return disponibles;
+}
+
+async function decrementarEstacionamiento(prisma: PrismaClient): Promise<void> {
+    await prisma.estacionamientos.update({
+        where: {
+            id: 1, // Asumiendo que hay un solo registro que controla los estacionamientos.
+        },
+        data: {
+            ocupados: {
+                increment: 1,
+            },
+        },
+    });
+}
+

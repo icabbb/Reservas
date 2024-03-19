@@ -6,4 +6,5 @@
   },
   "editor.formatOnSave": true,
   "editor.fontWeight": "normal",
+  "WillLuke.nextjs.hasPrompted": true,
 }

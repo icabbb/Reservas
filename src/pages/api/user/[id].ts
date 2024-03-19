@@ -1,3 +1,4 @@
+//pages/api/user/[id].ts
 import { PrismaClient } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next";
 import bcrypt from 'bcrypt';
@@ -5,13 +6,43 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
     const { id } = req.query;
 
-    if (req.method === 'PUT') {
+    if (req.method === 'GET') {
         try {
+            // Asegúrate de que el ID sea un número antes de pasarlo a la consulta
+            const user = await prisma.user.findUnique({
+                where: { id: Number(id) },
+            });
+
+            if (user) {
+                return res.status(200).json(user);
+            } else {
+                return res.status(404).json({ message: "User not found" });
+            }
+        } catch (error) {
+            console.error("Error al obtener el usuario:", error);
+            return res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+
+
+
+    else if (req.method === 'PUT') {
+        // Extract the user ID from the request query parameters
+        const { id } = req.query;
+
+        // Ensure that an ID has been provided
+        if (!id) {
+            return res.status(400).json({ message: "Missing user ID." });
+        }
+
+        try {
+            // Proceed with extracting other fields from the request body
             const {
                 rut,
-                nombre,
+                nombres,
                 apellidoPaterno,
                 apellidoMaterno,
                 email,
@@ -19,35 +50,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 asientoAsignado,
                 isExecutive,
                 role,
-                password, // Considera si necesitas actualizar la contraseña en cada actualización.
+                password, // Consider whether you need to update the password on every update.
             } = req.body;
 
-            // Actualiza el usuario en la base de datos
+            // Update the user in the database
             const user = await prisma.user.update({
-                where: { id: Number(id) },
+                where: { id: Number(id) }, // Convert to number if necessary and use it here
                 data: {
                     rut,
-                    nombres: nombre,
+                    nombres,
                     apellidoPaterno,
                     apellidoMaterno,
                     cargo,
                     asientoAsignado,
                     isExecutive: isExecutive === 'true',
                     email,
-                    // Considera cómo manejas la actualización de la contraseña aquí
+                    // Consider how you handle password updates here
                     role,
                 },
             });
 
-            // Responder con el usuario actualizado (excluyendo la contraseña)
+            // Respond with the updated user (excluding the password)
             return res.status(200).json(user);
         } catch (error) {
-            console.error('Error al actualizar el usuario:', error);
-            // Maneja los errores adecuadamente
-            return res.status(500).json({ message: 'Error al actualizar el usuario' });
+            console.error('Error updating user:', error);
+            // Appropriately handle errors
+            return res.status(500).json({ message: 'Error updating user' });
         }
-    } else if (req.method === 'DELETE') {
+    }
+
+    else if (req.method === 'DELETE') {
         try {
+            // Eliminar los cambios de contraseña asociados al usuario
+            const { id } = req.query;
+
+            await prisma.passwordReset.deleteMany({
+                where: {
+                    userId: Number(id),
+                },
+            });
+
+            // Eliminar las reservas asociadas al usuario
+            await prisma.reserva.deleteMany({
+                where: {
+                    userId: Number(id),
+                },
+            });
+
+            // Eliminar el usuario
             const pasajero = await prisma.user.delete({
                 where: { id: Number(id) }, // Convierte a número si es necesario.
             });
@@ -60,6 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 return res.status(500).json({ message: 'Error interno del servidor' });
             }
         }
+
     } else {
         // Si no es una solicitud DELETE, devuelve un error 405 Método No Permitido.
         return res.status(405).json({ message: 'Método no permitido' });

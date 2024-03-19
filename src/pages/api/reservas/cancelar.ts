@@ -63,13 +63,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       <h1>Sistema Mineral Airways</h1>
     </header>
     <section>
-        <h2>Estimado: ESTO ES UNA PRUEBA</h2>
+        <h2>Estimado: ${session.user.name}</h2>
         <p>Le informamos que la reserva para el vuelo ${reserva.vuelo.origen} - ${reserva.vuelo.destino} ha sido cancelada.</p>
         <p>Detalles de la reserva:</p>
         <ul>
           <li>Origen: ${reserva.vuelo.origen}</li>
           <li>Destino: ${reserva.vuelo.destino}</li>
-          <li>Fecha: ${new Date(reserva.vuelo.fechaHoraSalida).toLocaleDateString()}</li>
+          <li>Fecha: ${new Date(reserva.vuelo.fechaHoraSalida).toLocaleString()}</li>
           <li>Estado: Cancelado</li>
         </ul>
     </section>
@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Envío de correo electrónico
         await transporter.sendMail({
             from: '"Soporte TEST" <spprttestcollahuasi@gmail.com>',
-            to: ' Galvarezm2004@gmail.com',
+            to: ' <' + session.user.email + '> ',
             subject: "Confirmación de cancelación de vuelo ESTO ES UNA PRUEBA",
             html: mailOptions.html,
 

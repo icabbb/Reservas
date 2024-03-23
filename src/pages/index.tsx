@@ -12,20 +12,50 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, formatISO } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { es } from 'date-fns/locale';
+import "src/app/globals.css"
 
 
 export default function HomePage({ dateString }: { dateString: string }) {
-  const [fecha, setFecha] = useState<Date | null>(null);
+  const [fecha, setFecha] = useState<Date | undefined>(undefined);
+  const lugares = ["Santiago", "Coposa", "Iquique"]; // Los lugares disponibles
   const [origen, setOrigen] = useState('');
   const [destino, setDestino] = useState('');
+
   const [vuelosDisponibles, setVuelosDisponibles] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([]);
+
+  useEffect(() => {
+    const obtenerFechasDisponibles = async () => {
+      try {
+        const response = await fetch('/api/vuelos/fechasDisponibles');
+        const data = await response.json();
+        setFechasDisponibles(data);
+      } catch (error) {
+        console.error('Error al obtener las fechas disponibles:', error);
+      }
+    };
+
+    obtenerFechasDisponibles();
+  }, []);
+
+  const isDateDisabled = (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    return !fechasDisponibles.includes(formattedDate);
+  }
 
 
   const handleOrigenChange = (value: SetStateAction<string>) => {
     setOrigen(value);
+    // Si el destino es igual al nuevo origen, limpiamos el destino
+    if (destino === value) {
+      setDestino('');
+    }
   };
-
 
   const handleDestinoChange = async (value: string) => {
     setDestino(value);
@@ -77,6 +107,8 @@ export default function HomePage({ dateString }: { dateString: string }) {
     }
   }, [session, router]);
 
+  const destinosFiltrados = lugares.filter(lugar => lugar !== origen);
+
 
 
   return (
@@ -86,24 +118,31 @@ export default function HomePage({ dateString }: { dateString: string }) {
         <div className="grid gap-4">
           <h1 className="text-3xl font-semibold tracking-tight text-center">Reserva tu vuelo</h1>
           <div className="grid gap-4">
-            {/* Muestra primero el Input para la fecha */}
-            <Input
-              type="Date"
-              value={fecha ? format(fecha, 'yyyy-MM-dd') : ''} // Este es el estado que se actualiza con la fecha seleccionada
-              readOnly // Esto hace que el input sea solo de lectura
-              className="bg-gray-200 cursor-not-allowed" // Agrega estilos para indicar que el input no es editable
-              placeholder="DD/MM/AAAA" // Puedes cambiar el formato del placeholder si es necesario
-            />
-            {/* Luego el Popover para el calendario */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button className="w-auto justify-start text-left font-normal" id="calendar" variant="outline">
-                  <CalendarDaysIcon className="mr-1 h-4 w-4 -translate-x-1" />
-                  Selecciona una fecha
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    " justify-start text-left font-normal",
+                    !fecha && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {fecha ? format(fecha, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-auto p-0">
-                <Calendar initialFocus mode="single" onSelect={handleDateChange} />
+                <Calendar
+                  initialFocus
+                  mode="single"
+                  showOutsideDays={false}
+                  onSelect={handleDateChange}
+                  disabled={isDateDisabled}
+                  selected={fecha}
+
+
+                  className='w-auto p-0'
+                />
               </PopoverContent>
             </Popover>
 
@@ -117,9 +156,9 @@ export default function HomePage({ dateString }: { dateString: string }) {
                     <SelectValue placeholder="Selecciona el origen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Santiago">Santiago</SelectItem>
-                    <SelectItem value="Coposa">Coposa</SelectItem>
-                    <SelectItem value="Iquique">Iquique</SelectItem>
+                    {lugares.map((lugar) => (
+                      <SelectItem key={lugar} value={lugar}>{lugar}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -127,17 +166,18 @@ export default function HomePage({ dateString }: { dateString: string }) {
                 <div className="text-sm flex items-center gap-2">
                   <Label htmlFor="class">Destino</Label>
                 </div>
-                <Select onValueChange={handleDestinoChange}>
+
+                <Select onValueChange={handleDestinoChange} disabled={!origen}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona el destino" />
                   </SelectTrigger>
-                  <SelectContent >
-                    <SelectItem value="Santiago">Santiago</SelectItem>
-                    <SelectItem value="Coposa">Coposa</SelectItem>
-                    <SelectItem value="Iquique">Iquique</SelectItem>
-
+                  <SelectContent>
+                    {destinosFiltrados.map((lugar) => (
+                      <SelectItem key={lugar} value={lugar}>{lugar}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+
               </div>
 
             </form>
@@ -196,6 +236,7 @@ export default function HomePage({ dateString }: { dateString: string }) {
                 <div className="grid gap-4">
                   <Card>
                     <CardContent className="p-4">
+                      <h1 className="text-xl font-semibold tracking-tight text-center">Seleccione un vuelo disponible</h1>
                       <div className="animate-pulse flex space-x-4">
                         <div className="flex-1 space-y-4 py-1">
                           <div className="h-4 bg-gray-300 rounded w-3/4"></div>

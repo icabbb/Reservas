@@ -26,3 +26,14 @@ main {
     flex: 1;
 }
 
+.calendar-day--available {
+  background-color: #dff0d8; /* Color de fondo verde claro */
+  color: #3c763d; /* Texto en verde oscuro para contraste */
+  border: 1px solid #3c763d; /* Borde en verde oscuro */
+}
+
+.calendar-day--available:hover {
+  background-color: #d0e9c6; /* Un verde aún más claro en hover */
+  cursor: pointer; /* Cambiar el cursor para indicar que es seleccionable */
+}
+
